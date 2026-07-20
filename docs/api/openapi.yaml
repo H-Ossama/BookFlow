@@ -1,0 +1,822 @@
+openapi: 3.0.0
+info:
+  title: BookingHub API
+  description: Multi-tenant SaaS booking platform API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Current API version
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Not found"
+        details:
+          type: object
+          nullable: true
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        duration:
+          type: integer
+          description: Duration in minutes
+        price:
+          type: number
+          format: float
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        position:
+          type: string
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, COMPLETED, CANCELLED]
+
+paths:
+  # --- Auth ---
+  /login:
+    post:
+      summary: User login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  user:
+                    type: object
+        '401':
+          description: Unauthorized
+  
+  /register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+      responses:
+        '201':
+          description: User created
+  
+  /refresh-token:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      responses:
+        '200':
+          description: New access token generated
+          
+  /forgot-password:
+    post:
+      summary: Request password reset
+      tags: [Auth]
+      responses:
+        '200':
+          description: Password reset email sent
+
+  /reset-password:
+    post:
+      summary: Reset password
+      tags: [Auth]
+      responses:
+        '200':
+          description: Password reset successful
+
+  /verify-email:
+    get:
+      summary: Verify email address
+      tags: [Auth]
+      responses:
+        '200':
+          description: Email verified
+          
+  /auth/google:
+    get:
+      summary: Google OAuth login
+      tags: [Auth]
+      responses:
+        '302':
+          description: Redirect to Google
+  
+  # --- Companies ---
+  /companies:
+    get:
+      summary: List companies
+      tags: [Companies]
+      responses:
+        '200':
+          description: A list of companies
+    post:
+      summary: Create a new company
+      tags: [Companies]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Company created
+
+  /companies/{slug}:
+    get:
+      summary: Get company by slug
+      tags: [Companies]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company details
+
+  /companies/{id}:
+    patch:
+      summary: Update company details
+      tags: [Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company updated
+    delete:
+      summary: Delete a company
+      tags: [Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Company deleted
+
+  # --- Services ---
+  /services:
+    get:
+      summary: List all services
+      tags: [Services]
+      responses:
+        '200':
+          description: List of services
+    post:
+      summary: Create a service
+      tags: [Services]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Service created
+
+  /services/company/{companyId}:
+    get:
+      summary: List services for a specific company
+      tags: [Services]
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of company services
+
+  /services/{id}:
+    get:
+      summary: Get service details
+      tags: [Services]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service details
+    patch:
+      summary: Update a service
+      tags: [Services]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service updated
+    delete:
+      summary: Delete a service
+      tags: [Services]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Service deleted
+
+  # --- Employees ---
+  /employees:
+    post:
+      summary: Add an employee
+      tags: [Employees]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Employee added
+    get:
+      summary: List employees
+      tags: [Employees]
+      responses:
+        '200':
+          description: List of employees
+
+  /employees/company/{companyId}:
+    get:
+      summary: List employees for a company
+      tags: [Employees]
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of company employees
+
+  /employees/{id}:
+    get:
+      summary: Get employee details
+      tags: [Employees]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Employee details
+    patch:
+      summary: Update employee
+      tags: [Employees]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Employee updated
+    delete:
+      summary: Remove employee
+      tags: [Employees]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Employee removed
+
+  /employees/{id}/availability:
+    get:
+      summary: Get employee availability slots
+      tags: [Employees]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Available time slots
+
+  # --- Bookings ---
+  /bookings:
+    post:
+      summary: Create a booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Booking created
+    get:
+      summary: List user/company bookings
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of bookings
+
+  /bookings/{id}:
+    get:
+      summary: Get booking details
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking details
+    patch:
+      summary: Update a booking (reschedule)
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking updated
+    delete:
+      summary: Cancel a booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Booking cancelled
+
+  /bookings/{id}/approve:
+    patch:
+      summary: Approve a booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking approved
+
+  /bookings/{id}/reject:
+    patch:
+      summary: Reject a booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking rejected
+
+  /bookings/{id}/complete:
+    patch:
+      summary: Mark a booking as completed
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking completed
+
+  # --- Reviews ---
+  /reviews:
+    post:
+      summary: Submit a review
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Review submitted
+          
+  /reviews/company/{companyId}:
+    get:
+      summary: Get reviews for a company
+      tags: [Reviews]
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of reviews
+
+  /reviews/{id}:
+    get:
+      summary: Get a review
+      tags: [Reviews]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review details
+    delete:
+      summary: Delete a review
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Review deleted
+
+  # --- Coupons ---
+  /coupons:
+    post:
+      summary: Create a coupon
+      tags: [Coupons]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Coupon created
+          
+  /coupons/company/{companyId}:
+    get:
+      summary: Get company coupons
+      tags: [Coupons]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of coupons
+
+  /coupons/validate:
+    post:
+      summary: Validate a coupon code
+      tags: [Coupons]
+      responses:
+        '200':
+          description: Coupon validation result
+
+  /coupons/{id}:
+    patch:
+      summary: Update a coupon
+      tags: [Coupons]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Coupon updated
+    delete:
+      summary: Delete a coupon
+      tags: [Coupons]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Coupon deleted
+
+  # --- Analytics ---
+  /analytics/dashboard:
+    get:
+      summary: Get general dashboard metrics
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard metrics
+
+  /analytics/revenue:
+    get:
+      summary: Get revenue analytics
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Revenue data
+
+  /analytics/bookings:
+    get:
+      summary: Get booking analytics
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Booking statistics
+
+  /analytics/top-employees:
+    get:
+      summary: Get top performing employees
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Top employees data
+
+  /analytics/popular-services:
+    get:
+      summary: Get most popular services
+      tags: [Analytics]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Popular services data
+
+  # --- Subscriptions ---
+  /subscriptions/plans:
+    get:
+      summary: Get available subscription plans
+      tags: [Subscriptions]
+      responses:
+        '200':
+          description: List of plans
+
+  /subscriptions:
+    post:
+      summary: Create a subscription (Checkout session)
+      tags: [Subscriptions]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Checkout URL returned
+
+  /subscriptions/{id}:
+    patch:
+      summary: Update subscription
+      tags: [Subscriptions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription updated
+    delete:
+      summary: Cancel subscription
+      tags: [Subscriptions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Subscription cancelled
+
+  # --- Admin ---
+  /admin/companies:
+    get:
+      summary: List all companies (Super Admin)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of companies
+
+  /admin/stats:
+    get:
+      summary: Get platform wide statistics
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Platform stats
+
+  /admin/companies/{id}/suspend:
+    patch:
+      summary: Suspend a company
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company suspended
+
+  /admin/companies/{id}/activate:
+    patch:
+      summary: Activate a company
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company activated
+
+  /admin/revenue:
+    get:
+      summary: Get platform revenue
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Platform revenue data
