@@ -27,7 +27,7 @@ export class AuthController {
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -61,7 +61,7 @@ export class AuthController {
       res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
@@ -84,7 +84,12 @@ export class AuthController {
         await AuthService.logout(userId);
       }
 
-      res.clearCookie('refreshToken');
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+      });
       res.status(200).json({
         status: 'success',
         message: 'Logged out successfully',
@@ -117,16 +122,16 @@ export class AuthController {
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       // Save refresh token to Redis
       redis.setex(`refresh_token:${userProfile.id}`, 7 * 24 * 60 * 60, refreshToken).catch(() => {});
 
-      // Redirect back to frontend with short-lived access token
+      // Redirect back to frontend with access token in URL fragment (not query param)
       res.redirect(
-        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${accessToken}`
+        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback#token=${accessToken}`
       );
     } catch (error) {
       next(error);
@@ -167,6 +172,42 @@ export class AuthController {
       res.status(200).json({
         status: 'success',
         message: 'Email verified successfully.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Update current user profile (name, email with verification)
+  static async updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Not authenticated' });
+      }
+
+      const updatedUser = await AuthService.updateProfile(userId, req.body);
+      res.status(200).json({
+        status: 'success',
+        data: { user: updatedUser },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Change password
+  static async changePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ status: 'error', message: 'Not authenticated' });
+      }
+
+      await AuthService.changePassword(userId, req.body);
+      res.status(200).json({
+        status: 'success',
+        message: 'Password updated successfully.',
       });
     } catch (error) {
       next(error);

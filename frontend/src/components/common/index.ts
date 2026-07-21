@@ -5,3 +5,6 @@ export * from './EmptyState';
 export * from './ErrorBoundary';
 export * from './ProtectedRoute';
 export * from './Skeleton';
+export * from './RoleBadge';
+export * from './ProfileAvatar';
+export * from './ImageCropModal';

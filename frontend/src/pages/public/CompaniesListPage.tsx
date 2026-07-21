@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/client';
-import { Building2, MapPin, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, Building2, Globe2, Mail, MapPin, Phone, Search, ShieldCheck } from 'lucide-react';
 
 interface Company {
   id: string;
@@ -16,6 +16,7 @@ interface Company {
 export function CompaniesListPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     apiClient.get('/company').then((res) => {
@@ -23,40 +24,53 @@ export function CompaniesListPage() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 animate-spin rounded-full border-4 border-[#c5a880] border-t-transparent" /></div>;
-  }
+  const filteredCompanies = companies.filter((company) => `${company.name} ${company.description || ''} ${company.address || ''}`.toLowerCase().includes(query.toLowerCase()));
+  const withEmail = companies.filter((company) => company.email).length;
+  const withBookingPage = companies.filter((company) => company.slug).length;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold text-white mb-2">Find a Business</h1>
-      <p className="text-gray-400 mb-8">Browse companies and book appointments</p>
-      {companies.length === 0 ? (
-        <div className="text-center py-16 bg-[#121620] border border-white/5 rounded-xl">
-          <p className="text-gray-500">No businesses registered yet</p>
+    <main className="bf-companies-page">
+      <section className="bf-companies-hero">
+        <div>
+          <span className="bf-section-label"><ShieldCheck size={13} /> ADMIN BUSINESS REGISTRY</span>
+          <h1>Registered<br /><em>businesses.</em></h1>
+          <p>Monitor every business using BookFlow, review their public booking details, and keep the platform directory tidy from one admin-only workspace.</p>
         </div>
-      ) : (
-        <div className="grid gap-4">
-          {companies.map((c) => (
-            <Link key={c.id} to={`/book/${c.slug}`} className="bg-[#121620] border border-white/5 rounded-xl p-5 flex items-center justify-between hover:border-white/10 hover:bg-[#1a202c]/30 transition-all group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#c5a880]/10 flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-[#c5a880]" />
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold text-lg">{c.name}</h3>
-                  {c.description && <p className="text-sm text-gray-400 mt-0.5">{c.description}</p>}
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
-                    {c.address && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{c.address}</span>}
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-500 group-hover:text-[#c5a880] transition-colors" />
-            </Link>
-          ))}
+        <div className="bf-companies-summary">
+          <article><span>Total</span><strong>{companies.length}</strong><small>registered businesses</small></article>
+          <article><span>Booking pages</span><strong>{withBookingPage}</strong><small>active slugs</small></article>
+          <article><span>Contactable</span><strong>{withEmail}</strong><small>with email on file</small></article>
         </div>
-      )}
-    </div>
+      </section>
+      <section className="bf-companies-results">
+        <div className="bf-companies-toolbar">
+          <div className="bf-companies-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, description, or address..." aria-label="Search registered businesses" /></div>
+          <div className="bf-results-meta"><span>{loading ? 'Loading registry...' : `${filteredCompanies.length} shown`}</span><span>SUPER ADMIN</span></div>
+        </div>
+        {loading ? (
+          <div className="bf-company-empty"><div className="bf-company-loader" /><p>Loading registered businesses...</p></div>
+        ) : filteredCompanies.length === 0 ? (
+          <div className="bf-company-empty"><Building2 size={25} /><p>{query ? 'No businesses match that search.' : 'No businesses registered yet.'}</p><small>The registry will populate when company admins create businesses.</small></div>
+        ) : (
+          <div className="bf-company-grid">
+            {filteredCompanies.map((company) => (
+              <Link key={company.id} to={`/book/${company.slug}`} className="bf-company-card">
+                <div className="bf-company-card-top"><span className="bf-company-icon"><Building2 size={20} /></span><ArrowUpRight size={17} /></div>
+                <h2>{company.name}</h2>
+                <p>{company.description || 'No company description has been added yet.'}</p>
+                <div className="bf-company-details">
+                  <span><Globe2 size={13} />/{company.slug}</span>
+                  {company.address && <span><MapPin size={13} />{company.address}</span>}
+                  {company.email && <span><Mail size={13} />{company.email}</span>}
+                  {company.phone && <span><Phone size={13} />{company.phone}</span>}
+                </div>
+                <span className="bf-company-book">Open public booking page <ArrowUpRight size={14} /></span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
 

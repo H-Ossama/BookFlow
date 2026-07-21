@@ -162,19 +162,45 @@ model Review {
   booking    Booking  @relation(fields: [bookingId], references: [id])
 }
 
-model Coupon {
+model Plan {
   id              String   @id @default(uuid())
-  code            String
-  discountPercent Float
-  maxUses         Int?
-  currentUses     Int      @default(0)
-  expiresAt       DateTime?
+  name            String
+  description     String?
+  price           Float
+  monthlyBookings Int
+  employees       Int
+  features        String[]
   isActive        Boolean  @default(true)
-  companyId       String
+  sortOrder       Int      @default(0)
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
 
-  company         Company  @relation(fields: [companyId], references: [id])
-  bookings        Booking[]
+model PlatformFeature {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  key         String   @unique
+  category    String   @default("general")
+  createdAt   DateTime @default(now())
+}
+
+model Coupon {
+  id                String   @id @default(uuid())
+  code              String
+  description       String?
+  discountPercent   Float
+  maxUses           Int?
+  currentUses       Int      @default(0)
+  expiresAt         DateTime?
+  isActive          Boolean  @default(true)
+  applicablePlans   String[] // which plans this applies to (empty = all)
+  companyId         String?
+  createdBy         String?
+  createdAt         DateTime @default(now())
+
+  company           Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  bookings          Booking[]
 }
 
 model Subscription {

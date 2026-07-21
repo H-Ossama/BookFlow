@@ -25,6 +25,7 @@ interface AuthContextType {
   register: (data: any) => Promise<void>;
   logout: () => Promise<void>;
   oauthLogin: (token: string) => Promise<void>;
+  updateProfile: (data: { firstName?: string; lastName?: string; email?: string; currentPassword?: string; currentEmail?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,6 +125,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Update profile handler
+  const updateProfile = async (data: { firstName?: string; lastName?: string; email?: string; currentPassword?: string; currentEmail?: string }) => {
+    try {
+      const result = await authApi.updateProfile(data);
+      if (result.user) setUser(result.user);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   // OAuth login handler
   const oauthLogin = async (token: string) => {
     setIsLoading(true);
@@ -149,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         oauthLogin,
+        updateProfile,
       }}
     >
       {children}

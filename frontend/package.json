@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc -b --noEmit",
-"build": "tsc -b --noEmit && vite build",
+    "build": "tsc -b --noEmit && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -21,6 +21,7 @@
     "lucide-react": "^1.25.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-easy-crop": "^6.2.2",
     "react-hook-form": "^7.82.0",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.18.1",

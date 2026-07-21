@@ -265,6 +265,64 @@ export class AuthService {
     return { success: true };
   }
 
+  // Update profile (name, email)
+  public static async updateProfile(
+    userId: string,
+    data: { firstName?: string; lastName?: string; email?: string; currentPassword?: string; currentEmail?: string }
+  ) {
+    const user = await AuthRepository.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    // If email is being changed, verify current password + old email
+    if (data.email && data.email !== user.email) {
+      if (!data.currentPassword || !data.currentEmail) {
+        throw new BadRequestError('Current email and password are required to change your email');
+      }
+      if (data.currentEmail.toLowerCase() !== user.email.toLowerCase()) {
+        throw new BadRequestError('Old email does not match our records');
+      }
+      if (!user.passwordHash || !(await bcrypt.compare(data.currentPassword, user.passwordHash))) {
+        throw new UnauthorizedError('Current password is incorrect');
+      }
+      // Check if new email is already taken
+      const existing = await AuthRepository.findByEmail(data.email);
+      if (existing && existing.id !== userId) {
+        throw new ConflictError('This email is already in use by another account');
+      }
+    }
+
+    const updated = await AuthRepository.updateUser(userId, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+    });
+
+    const { passwordHash: _, ...userWithoutPassword } = updated;
+    return userWithoutPassword;
+  }
+
+  // Change password (requires current password verification)
+  public static async changePassword(
+    userId: string,
+    data: { currentPassword: string; newPassword: string }
+  ) {
+    const user = await AuthRepository.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    if (!user.passwordHash) {
+      throw new BadRequestError('This account uses Google Login. Set a password first.');
+    }
+
+    const isValid = await bcrypt.compare(data.currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new UnauthorizedError('Current password is incorrect');
+    }
+
+    const hashed = await this.hashPassword(data.newPassword);
+    await AuthRepository.updatePassword(userId, hashed);
+    return { success: true };
+  }
+
   // Verify email using verification token
   public static async verifyEmail(token: string) {
     try {

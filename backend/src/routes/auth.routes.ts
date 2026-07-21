@@ -82,6 +82,8 @@ router.post('/logout', authMiddleware, AuthController.logout);
  *       - bearerAuth: []
  */
 router.get('/me', authMiddleware, AuthController.getMe);
+router.patch('/me', authMiddleware, AuthController.updateProfile);
+router.patch('/me/password', authMiddleware, AuthController.changePassword);
 
 /**
  * @swagger

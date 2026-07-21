@@ -1,10 +1,16 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+function requireEnv(name: string): string {
+  const val = process.env[name];
+  if (!val) throw new Error(`Missing required env var: ${name}`);
+  return val;
+}
+
 export const authConfig = {
-  jwtSecret: process.env.JWT_SECRET || 'fallback-jwt-secret-key-12345',
+  jwtSecret: requireEnv('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-key-67890',
+  jwtRefreshSecret: requireEnv('JWT_REFRESH_SECRET'),
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',

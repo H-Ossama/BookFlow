@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Mail, Lock, LogIn, Sparkles } from 'lucide-react';
+import { Mail, Lock, LogIn, Sparkles, Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -19,6 +19,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
 
@@ -37,7 +38,6 @@ export function LoginPage() {
       toast.success('Welcome back!');
       navigate(from, { replace: true });
     } catch (err: any) {
-      console.error(err);
       toast.error(err.response?.data?.message || 'Invalid email or password');
     } finally {
       setIsSubmitting(false);
@@ -50,14 +50,18 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0c10] px-4 py-12 sm:px-6 lg:px-8">
+    <div className="bf-auth-page" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - rect.left}px`); event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - rect.top}px`); }}>
+      <video className="bf-auth-video" autoPlay muted loop playsInline aria-hidden="true"><source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8.mp4" type="video/mp4" /></video>
+      <div className="bf-auth-overlay" aria-hidden="true" />
+      <div className="bf-auth-layout">
+        <div className="bf-auth-intro"><Link to="/" className="bf-auth-brand"><span className="bf-nav-mark" />BookFlow</Link><span className="bf-section-label">THE CALM CONTROL ROOM</span><h1>Your day, held<br /><em>in one place.</em></h1><p>Bookings, customers, and the small details that make a great experience, all moving together.</p><div className="bf-auth-proof"><span>12</span><small>bookings already waiting<br />for the right workspace</small></div></div>
+        <div className="bf-auth-card">
       {/* Background Decorative Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -right-[20%] w-[80%] h-[80%] rounded-full bg-[radial-gradient(circle,rgba(197,168,128,0.05)_0%,rgba(0,0,0,0)_70%)]" />
         <div className="absolute -bottom-[40%] -left-[20%] w-[80%] h-[80%] rounded-full bg-[radial-gradient(circle,rgba(197,168,128,0.03)_0%,rgba(0,0,0,0)_70%)]" />
       </div>
 
-      <div className="relative w-full max-w-md space-y-8 bg-[#121620]/80 backdrop-blur-xl border border-white/5 p-8 rounded-2xl shadow-2xl shadow-[#000000]/50">
         <div className="text-center">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#c5a880]/10 text-[#c5a880] mb-4">
             <Sparkles className="h-6 w-6" />
@@ -118,16 +122,24 @@ export function LoginPage() {
                 </div>
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   {...register('password')}
-                  className={`block w-full rounded-lg border bg-[#1a202c]/50 py-3 pl-10 pr-3 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors duration-200 ${
+                  className={`block w-full rounded-lg border bg-[#1a202c]/50 py-3 pl-10 pr-10 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors duration-200 ${
                     errors.password
                       ? 'border-red-500/50 focus:border-red-500'
                       : 'border-white/5 focus:border-[#c5a880] focus:ring-1 focus:ring-[#c5a880]/50'
                   }`}
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-[#c5a880] transition-colors cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
               {errors.password && (
                 <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
@@ -185,10 +197,10 @@ export function LoginPage() {
             Sign up
           </Link>
         </p>
+        </div>
       </div>
     </div>
   );
 }
 
 export default LoginPage;
-

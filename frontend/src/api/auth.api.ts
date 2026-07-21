@@ -35,6 +35,16 @@ export const authApi = {
     const response = await apiClient.get(`/auth/verify-email?token=${token}`);
     return response.data;
   },
+
+  updateProfile: async (data: { firstName?: string; lastName?: string; email?: string; currentPassword?: string; currentEmail?: string }) => {
+    const response = await apiClient.patch('/auth/me', data);
+    return response.data.data;
+  },
+
+  changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+    const response = await apiClient.patch('/auth/me/password', data);
+    return response.data;
+  },
 };
 export default authApi;
 

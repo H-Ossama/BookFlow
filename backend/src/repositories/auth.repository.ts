@@ -79,6 +79,18 @@ export class AuthRepository {
     });
   }
 
+  static async updateUser(id: string, data: { firstName?: string; lastName?: string; email?: string }) {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        ...(data.firstName !== undefined && { firstName: data.firstName }),
+        ...(data.lastName !== undefined && { lastName: data.lastName }),
+        ...(data.email !== undefined && { email: data.email.toLowerCase() }),
+      },
+      include: { company: true },
+    });
+  }
+
   static async updatePassword(id: string, passwordHash: string) {
     return prisma.user.update({
       where: { id },
