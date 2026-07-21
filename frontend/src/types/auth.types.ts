@@ -10,4 +10,11 @@ export interface User {
     name: string;
     slug: string;
   } | null;
+  companyRoleId?: string | null;
+  companyRole?: {
+    id: string;
+    name: string;
+    description: string | null;
+    permissions: string[];
+  } | null;
 }

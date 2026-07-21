@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../context/AuthContext';
 import { employeesApi } from '../../api/employees.api';
-import type { Employee, WorkingHours, VacationDay } from '../../types/employee.types';
+import { rolesApi } from '../../api/roles.api';
+import type { Employee, WorkingHours, VacationDay, CompanyRole } from '../../types/employee.types';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, X, Clock, CalendarDays, Sun, Search, Users, Mail, Phone, Briefcase, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Clock, CalendarDays, Sun, Search, Users, Mail, Phone, Briefcase, CheckCircle2, XCircle, Shield } from 'lucide-react';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -22,12 +23,13 @@ export function EmployeesManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ email: '', firstName: '', lastName: '', phone: '', bio: '' });
+  const [form, setForm] = useState({ email: '', firstName: '', lastName: '', phone: '', bio: '', companyRoleId: '' });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
   const [whEmployeeId, setWhEmployeeId] = useState<string | null>(null);
   const [whSchedules, setWhSchedules] = useState<WorkingHours[]>([]);
+  const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [showWhModal, setShowWhModal] = useState(false);
 
   const [vacEmployeeId, setVacEmployeeId] = useState<string | null>(null);
@@ -50,7 +52,14 @@ export function EmployeesManagement() {
     }
   };
 
-  useEffect(() => { fetchEmployees(); }, [companyId]);
+  const fetchRoles = async () => {
+    try {
+      const data = await rolesApi.getAll();
+      setRoles(data);
+    } catch { /* roles not critical */ }
+  };
+
+  useEffect(() => { fetchEmployees(); fetchRoles(); }, [companyId]);
 
   const filtered = employees.filter((e) => {
     const q = search.toLowerCase();
@@ -61,13 +70,13 @@ export function EmployeesManagement() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({ email: '', firstName: '', lastName: '', phone: '', bio: '' });
+    setForm({ email: '', firstName: '', lastName: '', phone: '', bio: '', companyRoleId: '' });
     setShowModal(true);
   };
 
   const openEdit = (emp: Employee) => {
     setEditingId(emp.id);
-    setForm({ email: emp.user.email, firstName: emp.user.firstName, lastName: emp.user.lastName, phone: emp.user.phone || '', bio: emp.bio || '' });
+    setForm({ email: emp.user.email, firstName: emp.user.firstName, lastName: emp.user.lastName, phone: emp.user.phone || '', bio: emp.bio || '', companyRoleId: emp.user.companyRoleId || '' });
     setShowModal(true);
   };
 
@@ -76,7 +85,10 @@ export function EmployeesManagement() {
     setSaving(true);
     try {
       if (editingId) {
-        const updated = await employeesApi.update(editingId, form);
+        const updateData: any = { firstName: form.firstName, lastName: form.lastName, phone: form.phone, bio: form.bio };
+        if (form.companyRoleId) updateData.companyRoleId = form.companyRoleId;
+        else updateData.companyRoleId = null;
+        const updated = await employeesApi.update(editingId, updateData);
         setEmployees((prev) => prev.map((e) => (e.id === editingId ? { ...e, ...updated, user: { ...e.user, ...updated.user } } : e)));
         toast.success('Employee updated');
       } else {
@@ -224,11 +236,17 @@ export function EmployeesManagement() {
                     <div className="flex items-center gap-2.5">
                       <h3 className="text-white font-medium text-sm">{emp.user.firstName} {emp.user.lastName}</h3>
                       <span className={`inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[.08em] px-2 py-0.5 rounded-full ${
-                        emp.isActive ? 'text-[#86d6c8] bg-[#86d6c8]/10' : 'text-[#aaa9a5] bg-white/[.06]'
-                      }`}>
-                        {emp.isActive ? <CheckCircle2 className="h-2.5 w-2.5" /> : <XCircle className="h-2.5 w-2.5" />}
-                        {emp.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                         emp.isActive ? 'text-[#86d6c8] bg-[#86d6c8]/10' : 'text-[#aaa9a5] bg-white/[.06]'
+                       }`}>
+                         {emp.isActive ? <CheckCircle2 className="h-2.5 w-2.5" /> : <XCircle className="h-2.5 w-2.5" />}
+                         {emp.isActive ? 'Active' : 'Inactive'}
+                       </span>
+                       {emp.user.companyRole && (
+                         <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[.08em] px-2 py-0.5 rounded-full text-[#7eb8da] bg-[#7eb8da]/10">
+                           <Shield className="h-2.5 w-2.5" />
+                           {emp.user.companyRole.name}
+                         </span>
+                       )}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-[#aaa9a5] mt-1 flex-wrap">
                       <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {emp.user.email}</span>
@@ -301,6 +319,16 @@ export function EmployeesManagement() {
                 <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={2}
                   className="block w-full rounded-lg border border-white/[.08] bg-white/[.06] py-2.5 px-3.5 text-sm text-white placeholder-[#aaa9a5] focus:outline-none focus:border-[#86d6c8] transition-colors resize-none"
                   placeholder="e.g. Senior stylist, specializes in color treatment" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono uppercase tracking-[.1em] text-[#86d6c8] mb-1.5">Staff Role</label>
+                <select value={form.companyRoleId} onChange={(e) => setForm({ ...form, companyRoleId: e.target.value })}
+                  className="block w-full rounded-lg border border-white/[.08] bg-white/[.06] py-2.5 px-3.5 text-sm text-white focus:outline-none focus:border-[#86d6c8] transition-colors">
+                  <option value="" className="bg-[#1a1d24]">No role</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id} className="bg-[#1a1d24]">{role.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex gap-3 mt-6">

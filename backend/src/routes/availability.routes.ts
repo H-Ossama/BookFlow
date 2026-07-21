@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { AvailabilityController } from '../controllers/availability.controller';
-import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -23,6 +22,6 @@ const router = Router();
  *           type: string
  *           format: date
  */
-router.get('/', authMiddleware, AvailabilityController.getSlots);
+router.get('/', AvailabilityController.getSlots);
 
 export default router;

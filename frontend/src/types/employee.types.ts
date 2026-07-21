@@ -1,3 +1,15 @@
+export interface CompanyRole {
+  id: string;
+  companyId: string;
+  name: string;
+  description: string | null;
+  permissions: string[];
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { users: number };
+}
+
 export interface Employee {
   id: string;
   userId: string;
@@ -14,6 +26,8 @@ export interface Employee {
     lastName: string;
     phone: string | null;
     avatar: string | null;
+    companyRoleId: string | null;
+    companyRole: CompanyRole | null;
   };
   workingHours?: WorkingHours[];
   vacationDays?: VacationDay[];

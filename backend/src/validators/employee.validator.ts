@@ -7,6 +7,7 @@ export const createEmployeeSchema = z.object({
   phone: z.string().optional(),
   bio: z.string().optional(),
   specialties: z.array(z.string()).optional(),
+  companyRoleId: z.string().optional(),
 });
 
 export const updateEmployeeSchema = z.object({
@@ -16,6 +17,7 @@ export const updateEmployeeSchema = z.object({
   bio: z.string().optional(),
   specialties: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
+  companyRoleId: z.string().nullable().optional(),
 });
 
 export const workingHoursSchema = z.object({

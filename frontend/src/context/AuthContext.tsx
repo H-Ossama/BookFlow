@@ -15,6 +15,12 @@ interface User {
     name: string;
     slug: string;
   } | null;
+  companyRole?: {
+    id: string;
+    name: string;
+    description: string | null;
+    permissions: string[];
+  } | null;
 }
 
 interface AuthContextType {

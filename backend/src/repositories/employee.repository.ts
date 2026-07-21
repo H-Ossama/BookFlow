@@ -1,11 +1,16 @@
 import { prisma } from '../config/database';
 import type { Prisma } from '@prisma/client';
 
+const userSelect = {
+  id: true, email: true, firstName: true, lastName: true, phone: true, avatar: true, companyRoleId: true,
+  companyRole: { select: { id: true, name: true, description: true, permissions: true } },
+} as const;
+
 export class EmployeeRepository {
   static async findAll(companyId: string) {
     return prisma.employee.findMany({
       where: { companyId },
-      include: { user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true, avatar: true } } },
+      include: { user: { select: userSelect } },
       orderBy: { user: { firstName: 'asc' } },
     });
   }
@@ -14,7 +19,7 @@ export class EmployeeRepository {
     return prisma.employee.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true, avatar: true } },
+        user: { select: userSelect },
         workingHours: true,
         vacationDays: true,
       },
@@ -22,11 +27,11 @@ export class EmployeeRepository {
   }
 
   static async create(data: Prisma.EmployeeCreateInput) {
-    return prisma.employee.create({ data, include: { user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } } } });
+    return prisma.employee.create({ data, include: { user: { select: userSelect } } });
   }
 
   static async update(id: string, data: Prisma.EmployeeUpdateInput) {
-    return prisma.employee.update({ where: { id }, data, include: { user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } } } });
+    return prisma.employee.update({ where: { id }, data, include: { user: { select: userSelect } } });
   }
 
   static async delete(id: string) {

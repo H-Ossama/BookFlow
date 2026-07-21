@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { Menu } from 'lucide-react';
 
 export function DashboardLayout() {
@@ -25,8 +26,11 @@ export function DashboardLayout() {
             <Menu className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-bold text-white font-serif tracking-tight">BookFlow<span className="text-[#86d6c8]">.</span></h1>
-          <div className="w-5" />
+          <NotificationBell />
         </header>
+        <div className="hidden lg:flex items-center justify-end px-6 py-3 shrink-0">
+          <NotificationBell />
+        </div>
         <main className="dashboard-main flex-1 overflow-y-auto">
           <div className="max-w-full">
             <Outlet />

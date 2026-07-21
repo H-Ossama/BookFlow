@@ -15,9 +15,33 @@ export interface TokenPayload {
   userId: string;
   role: string;
   companyId: string | null;
+  companyRoleId?: string | null;
+  permissions?: string[];
 }
 
 export class AuthService {
+  // Load permissions from user's company role
+  private static async loadPermissions(userId: string, role: string, companyRoleId?: string | null): Promise<{ companyRoleId?: string | null; permissions?: string[] }> {
+    if (role !== 'EMPLOYEE' || !companyRoleId) return {};
+    try {
+      const companyRole = await prisma.companyRole.findUnique({
+        where: { id: companyRoleId },
+        select: { permissions: true },
+      });
+      return { companyRoleId, permissions: (companyRole?.permissions as string[]) || [] };
+    } catch {
+      return { companyRoleId };
+    }
+  }
+
+  // Build token payload with permissions
+  private static async buildTokenPayload(userId: string, role: string, companyId: string | null, companyRoleId?: string | null): Promise<TokenPayload> {
+    const base = { userId, role: role as any, companyId };
+    if (role !== 'EMPLOYEE') return base;
+    const extra = await this.loadPermissions(userId, role, companyRoleId);
+    return { ...base, ...extra };
+  }
+
   // Hash a plain text password
   private static async hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(10);
@@ -122,18 +146,13 @@ export class AuthService {
       throw new UnauthorizedError('Your company account has been suspended. Please contact support');
     }
 
-    const payload: TokenPayload = {
-      userId: user.id,
-      role: user.role,
-      companyId: user.companyId,
-    };
-
+    const payload = await this.buildTokenPayload(user.id, user.role, user.companyId, (user as any).companyRoleId);
     const tokens = this.generateTokens(payload);
 
     // Save refresh token to Redis for revocation support (optional key-value storage)
     await redis.setex(`refresh_token:${user.id}`, 7 * 24 * 60 * 60, tokens.refreshToken);
 
-    const { passwordHash: _, ...userWithoutPassword } = user;
+    const { passwordHash: _, ...userWithoutPassword } = user as any;
     return { user: userWithoutPassword, ...tokens };
   }
 
@@ -153,12 +172,7 @@ export class AuthService {
         throw new UnauthorizedError('User not found');
       }
 
-      const payload: TokenPayload = {
-        userId: user.id,
-        role: user.role,
-        companyId: user.companyId,
-      };
-
+      const payload = await this.buildTokenPayload(user.id, user.role, user.companyId, (user as any).companyRoleId);
       const tokens = this.generateTokens(payload);
       
       // Update refresh token in Redis
@@ -196,7 +210,7 @@ export class AuthService {
         user = await prisma.user.update({
           where: { id: user.id },
           data: { googleId: googleUser.googleId, emailVerified: true },
-          include: { company: true },
+          include: { company: true, companyRole: { select: { id: true, name: true, description: true, permissions: true } } },
         });
       } else {
         // Create new Customer account via Google
@@ -212,16 +226,13 @@ export class AuthService {
       }
     }
 
-    const payload: TokenPayload = {
-      userId: user.id,
-      role: user.role,
-      companyId: user.companyId,
-    };
+    if (!user) throw new Error('Failed to create or find user');
 
+    const payload = await this.buildTokenPayload(user.id, user.role, user.companyId, (user as any).companyRoleId);
     const tokens = this.generateTokens(payload);
     await redis.setex(`refresh_token:${user.id}`, 7 * 24 * 60 * 60, tokens.refreshToken);
 
-    const { passwordHash: _, ...userWithoutPassword } = user;
+    const { passwordHash: _, ...userWithoutPassword } = user as any;
     return { user: userWithoutPassword, ...tokens };
   }
 

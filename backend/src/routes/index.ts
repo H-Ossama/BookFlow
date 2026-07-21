@@ -13,9 +13,12 @@ import notificationRoutes from './notification.routes';
 import subscriptionRoutes from './subscription.routes';
 import adminRoutes from './admin.routes';
 import reportRoutes from './report.routes';
+import companyRoleRoutes from './company-role.routes';
+import websiteRoutes from './website.routes';
 
 const router = Router();
 router.use('/auth', authRoutes);
+router.use('/company/roles', companyRoleRoutes);
 router.use('/company', companyRoutes);
 router.use('/service', serviceRoutes);
 router.use('/employee', employeeRoutes);
@@ -29,6 +32,7 @@ router.use('/notification', notificationRoutes);
 router.use('/subscription', subscriptionRoutes);
 router.use('/admin', adminRoutes);
 router.use('/report', reportRoutes);
+router.use('/website', websiteRoutes);
 
 export default router;
 

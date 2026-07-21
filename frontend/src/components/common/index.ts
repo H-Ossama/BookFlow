@@ -4,6 +4,7 @@ export * from './SearchBar';
 export * from './EmptyState';
 export * from './ErrorBoundary';
 export * from './ProtectedRoute';
+export * from './RequirePermission';
 export * from './Skeleton';
 export * from './RoleBadge';
 export * from './ProfileAvatar';

@@ -28,6 +28,40 @@ enum SubscriptionPlan {
   PREMIUM
 }
 
+model WebsiteTheme {
+  id             String   @id @default(uuid())
+  companyId      String   @unique
+  primaryColor   String   @default("#c5a880")
+  secondaryColor String   @default("#0a0c10")
+  accentColor    String   @default("#e8d5b8")
+  backgroundColor String  @default("#0a0c10")
+  textColor      String   @default("#ffffff")
+  fontFamily     String   @default("Inter")
+  borderRadius   String   @default("12px")
+  buttonStyle    String   @default("solid")
+  animationStyle String   @default("fade")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model WebsiteSection {
+  id            String   @id @default(uuid())
+  companyId     String
+  sectionType   String   // hero, services, booking, gallery, testimonials, contact, footer, navbar, pricing, faq, team, cta
+  layoutVariant String   @default("default")
+  sortOrder     Int      @default(0)
+  content       Json     @default("{}")
+  isVisible     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, sortOrder])
+}
+
 model Company {
   id               String   @id @default(uuid())
   name             String
@@ -50,24 +84,29 @@ model Company {
   coupons          Coupon[]
   holidays         Holiday[]
   subscriptions    Subscription[]
+  companyRoles     CompanyRole[]
+  websiteTheme     WebsiteTheme?
+  websiteSections  WebsiteSection[]
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
+  id            String      @id @default(uuid())
+  email         String      @unique
   passwordHash  String?
   firstName     String
   lastName      String
   phone         String?
   avatar        String?
-  role          Role     @default(CUSTOMER)
-  emailVerified Boolean  @default(false)
-  googleId      String?  @unique
+  role          Role        @default(CUSTOMER)
+  companyRoleId String?
+  emailVerified Boolean     @default(false)
+  googleId      String?     @unique
   companyId     String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  company       Company? @relation(fields: [companyId], references: [id])
+  company       Company?    @relation(fields: [companyId], references: [id])
+  companyRole   CompanyRole? @relation(fields: [companyRoleId], references: [id])
   employee      Employee?
   notifications Notification[]
 }
@@ -214,6 +253,23 @@ model Subscription {
   createdAt            DateTime         @default(now())
 
   company              Company          @relation(fields: [companyId], references: [id])
+}
+
+model CompanyRole {
+  id          String   @id @default(uuid())
+  companyId   String
+  name        String
+  description String?
+  permissions Json     // string[] of permission keys
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users       User[]
+
+  @@unique([companyId, name])
+  @@map("company_roles")
 }
 
 model Notification {

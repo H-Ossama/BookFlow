@@ -7,8 +7,8 @@ import { createEmployeeSchema, updateEmployeeSchema, workingHoursSchema, vacatio
 
 const router = Router();
 
-router.get('/', authMiddleware, EmployeeController.getAll);
-router.get('/:id', authMiddleware, EmployeeController.getById);
+router.get('/', EmployeeController.getAll);
+router.get('/:id', EmployeeController.getById);
 router.post('/', authMiddleware, checkRole(['COMPANY_ADMIN', 'SUPER_ADMIN']), validate(createEmployeeSchema), EmployeeController.create);
 router.patch('/:id', authMiddleware, checkRole(['COMPANY_ADMIN', 'SUPER_ADMIN']), validate(updateEmployeeSchema), EmployeeController.update);
 router.delete('/:id', authMiddleware, checkRole(['COMPANY_ADMIN', 'SUPER_ADMIN']), EmployeeController.delete);

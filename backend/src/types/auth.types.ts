@@ -4,6 +4,8 @@ export interface JwtPayload {
   userId: string;
   role: Role;
   companyId: string | null;
+  companyRoleId?: string | null;
+  permissions?: string[];
 }
 
 export interface TokenPair {

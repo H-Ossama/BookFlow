@@ -1,6 +1,6 @@
 import { BookingRepository } from '../repositories/booking.repository';
 import { EmployeeRepository } from '../repositories/employee.repository';
-import { NotificationService } from './notification.service';
+import { NotificationService, NotificationTypes } from './notification.service';
 import { EmailService } from './email.service';
 import { prisma } from '../config/database';
 import { NotFoundError, ConflictError, BadRequestError, ForbiddenError } from '../utils/errors';
@@ -120,15 +120,35 @@ export class BookingService {
       couponId,
     });
 
-    NotificationService.createNotification(data.customerId, 'booking_created', 'Booking Created', `Your ${service.name} booking on ${data.date} at ${data.startTime} is pending confirmation.`).catch(() => {});
-    NotificationService.createNotification(employee.userId, 'booking_created', 'New Booking', `New ${service.name} booking on ${data.date} at ${data.startTime}.`).catch(() => {});
+    const employeeName = `${employee.user.firstName} ${employee.user.lastName}`;
+    const customerUser = await prisma.user.findUnique({ where: { id: data.customerId } });
+    const customerName = customerUser ? `${customerUser.firstName} ${customerUser.lastName}` : 'A customer';
 
-    const customer = await prisma.user.findUnique({ where: { id: data.customerId } });
-    if (customer?.email) {
-      EmailService.sendBookingCreated(customer.email, {
-        customerName: `${customer.firstName} ${customer.lastName}`,
+    // Notify the customer
+    NotificationService.createNotification(data.customerId, NotificationTypes.BOOKING_CREATED,
+      'Booking Created', `Your ${service.name} booking on ${data.date} at ${data.startTime} with ${employeeName} is pending confirmation.`
+    ).catch(() => {});
+
+    // Notify the assigned employee specifically
+    NotificationService.createNotification(employee.userId, NotificationTypes.BOOKING_CREATED,
+      'New Booking Assigned', `${customerName} booked ${service.name} on ${data.date} at ${data.startTime}.`
+    ).catch(() => {});
+
+    // Notify company admins
+    NotificationService.notifyCompanyAdmins(data.companyId, NotificationTypes.EMPLOYEE_BOOKING,
+      'New Staff Booking', `${employeeName} received a new booking for ${service.name} from ${customerName} on ${data.date} at ${data.startTime}.`
+    ).catch(() => {});
+
+    // Notify staff with bookings permission (senior staff, managers)
+    NotificationService.notifyCompanyStaffWithPermission(data.companyId, 'bookings', NotificationTypes.EMPLOYEE_BOOKING,
+      'New Booking in Queue', `${customerName} booked ${service.name} with ${employeeName} on ${data.date} at ${data.startTime}.`
+    ).catch(() => {});
+
+    if (customerUser?.email) {
+      EmailService.sendBookingCreated(customerUser.email, {
+        customerName,
         serviceName: service.name,
-        employeeName: `${employee.user.firstName} ${employee.user.lastName}`,
+        employeeName,
         date: data.date,
         time: data.startTime,
         price: totalPrice,
@@ -164,35 +184,56 @@ export class BookingService {
 
     const updated = await BookingRepository.updateStatus(bookingId, status);
 
-    if (status === 'CONFIRMED' || status === 'CANCELLED') {
+    if (status === 'CONFIRMED' || status === 'CANCELLED' || status === 'REJECTED') {
       const customerUser = await prisma.user.findUnique({ where: { id: booking.customerId } });
       const dateStr = booking.date.toISOString().split('T')[0];
-      if (customerUser?.email) {
-        if (status === 'CONFIRMED') {
+      const employeeName = `${booking.employee.user.firstName} ${booking.employee.user.lastName}`;
+      const serviceName = booking.service.name;
+
+      if (status === 'CONFIRMED') {
+        NotificationService.createNotification(booking.customerId, NotificationTypes.BOOKING_CONFIRMED,
+          'Booking Confirmed', `Your ${serviceName} booking on ${dateStr} at ${booking.startTime} with ${employeeName} is confirmed.`
+        ).catch(() => {});
+        NotificationService.createNotification(booking.employee.userId, NotificationTypes.BOOKING_CONFIRMED,
+          'Booking Confirmed', `Your ${serviceName} booking with customer on ${dateStr} at ${booking.startTime} has been confirmed.`
+        ).catch(() => {});
+        if (customerUser?.email) {
           EmailService.sendBookingConfirmed(customerUser.email, {
             customerName: `${customerUser.firstName} ${customerUser.lastName}`,
-            serviceName: booking.service.name,
-            employeeName: `${booking.employee.user.firstName} ${booking.employee.user.lastName}`,
-            date: dateStr,
-            time: booking.startTime,
-            price: booking.totalPrice,
-            companyName: booking.company.name,
-          }).catch(() => {});
-        } else if (status === 'CANCELLED') {
-          EmailService.sendBookingCancelled(customerUser.email, {
-            customerName: `${customerUser.firstName} ${customerUser.lastName}`,
-            serviceName: booking.service.name,
-            employeeName: `${booking.employee.user.firstName} ${booking.employee.user.lastName}`,
+            serviceName,
+            employeeName,
             date: dateStr,
             time: booking.startTime,
             price: booking.totalPrice,
             companyName: booking.company.name,
           }).catch(() => {});
         }
+      } else if (status === 'CANCELLED') {
+        NotificationService.createNotification(booking.customerId, NotificationTypes.BOOKING_CANCELLED,
+          'Booking Cancelled', `Your ${serviceName} booking on ${dateStr} at ${booking.startTime} has been cancelled.`
+        ).catch(() => {});
+        NotificationService.createNotification(booking.employee.userId, NotificationTypes.BOOKING_CANCELLED,
+          'Booking Cancelled', `The ${serviceName} booking on ${dateStr} at ${booking.startTime} has been cancelled.`
+        ).catch(() => {});
+        if (customerUser?.email) {
+          EmailService.sendBookingCancelled(customerUser.email, {
+            customerName: `${customerUser.firstName} ${customerUser.lastName}`,
+            serviceName,
+            employeeName,
+            date: dateStr,
+            time: booking.startTime,
+            price: booking.totalPrice,
+            companyName: booking.company.name,
+          }).catch(() => {});
+        }
+      } else if (status === 'REJECTED') {
+        NotificationService.createNotification(booking.customerId, NotificationTypes.BOOKING_REJECTED,
+          'Booking Rejected', `Your ${serviceName} booking on ${dateStr} at ${booking.startTime} has been rejected.`
+        ).catch(() => {});
+        NotificationService.createNotification(booking.employee.userId, NotificationTypes.BOOKING_REJECTED,
+          'Booking Rejected', `The ${serviceName} booking on ${dateStr} at ${booking.startTime} has been rejected.`
+        ).catch(() => {});
       }
-      NotificationService.createNotification(booking.customerId, status === 'CONFIRMED' ? 'booking_confirmed' : 'booking_cancelled',
-        status === 'CONFIRMED' ? 'Booking Confirmed' : 'Booking Cancelled',
-        `Your ${booking.service.name} booking on ${dateStr} at ${booking.startTime} has been ${status.toLowerCase()}.`).catch(() => {});
     }
 
     return updated;

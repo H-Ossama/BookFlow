@@ -17,7 +17,7 @@ export class EmployeeService {
     return employee;
   }
 
-  static async create(companyId: string, requesterRole: string, data: { email: string; firstName: string; lastName: string; phone?: string; bio?: string; specialties?: string[] }) {
+  static async create(companyId: string, requesterRole: string, data: { email: string; firstName: string; lastName: string; phone?: string; bio?: string; specialties?: string[]; companyRoleId?: string }) {
     if (requesterRole !== 'COMPANY_ADMIN' && requesterRole !== 'SUPER_ADMIN') {
       throw new ForbiddenError('Only company admins can add employees');
     }
@@ -28,7 +28,9 @@ export class EmployeeService {
       if (existingEmployee) {
         throw new ConflictError('This user is already an employee');
       }
-      // Link existing user as employee
+      if (data.companyRoleId) {
+        await AuthRepository.updateUser(existingUser.id, { companyRoleId: data.companyRoleId });
+      }
       return EmployeeRepository.create({
         user: { connect: { id: existingUser.id } },
         company: { connect: { id: companyId } },
@@ -49,6 +51,7 @@ export class EmployeeService {
       phone: data.phone,
       role: 'EMPLOYEE',
       emailVerified: false,
+      companyRoleId: data.companyRoleId || null,
     });
 
     const employee = await EmployeeRepository.create({
@@ -67,7 +70,25 @@ export class EmployeeService {
     }
     const employee = await EmployeeRepository.findById(employeeId);
     if (!employee || employee.companyId !== companyId) throw new NotFoundError('Employee not found');
-    return EmployeeRepository.update(employeeId, data);
+
+    // Update user-level fields (firstName, lastName, phone, companyRoleId)
+    const userFields: Record<string, any> = {};
+    if (data.firstName !== undefined) userFields.firstName = data.firstName;
+    if (data.lastName !== undefined) userFields.lastName = data.lastName;
+    if (data.phone !== undefined) userFields.phone = data.phone;
+    if (data.companyRoleId !== undefined) userFields.companyRoleId = data.companyRoleId;
+
+    if (Object.keys(userFields).length > 0) {
+      await AuthRepository.updateUser(employee.userId, userFields);
+    }
+
+    // Update employee-level fields
+    const employeeData: Record<string, any> = {};
+    if (data.bio !== undefined) employeeData.bio = data.bio;
+    if (data.specialties !== undefined) employeeData.specialties = data.specialties;
+    if (data.isActive !== undefined) employeeData.isActive = data.isActive;
+
+    return EmployeeRepository.update(employeeId, employeeData);
   }
 
   static async delete(employeeId: string, companyId: string, requesterRole: string) {

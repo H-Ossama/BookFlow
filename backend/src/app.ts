@@ -14,22 +14,30 @@ import passport from './config/passport';
 const app: Application = express();
 
 // Security Middlewares
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const ROOT_DOMAIN = process.env.ROOT_DOMAIN || 'bookinghub.com';
+const isDev = process.env.NODE_ENV !== 'production';
+
 app.use(helmet({
-  contentSecurityPolicy: {
+  contentSecurityPolicy: isDev ? false : {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])],
+      connectSrc: ["'self'", FRONTEND_URL],
       fontSrc: ["'self'", "data:"],
     },
   },
 }));
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 app.use(cors({
-  origin: [FRONTEND_URL],
+  origin: (origin, callback) => {
+    if (!origin || origin === FRONTEND_URL) return callback(null, true);
+    if (isDev && /\.localhost:\d+$/.test(origin)) return callback(null, true);
+    if (ROOT_DOMAIN && new RegExp(`\\.${ROOT_DOMAIN.replace(/\./g, '\\.')}$`).test(origin)) return callback(null, true);
+    callback(null, false);
+  },
   credentials: true,
 }));
 

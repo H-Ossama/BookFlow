@@ -1,25 +1,30 @@
 import { prisma } from '../config/database';
 import { Prisma } from '@prisma/client';
 
+const userInclude = {
+  company: true,
+  companyRole: { select: { id: true, name: true, description: true, permissions: true } },
+} as const;
+
 export class AuthRepository {
   static async findByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      include: { company: true },
+      include: userInclude,
     });
   }
 
   static async findById(id: string) {
     return prisma.user.findUnique({
       where: { id },
-      include: { company: true },
+      include: userInclude,
     });
   }
 
   static async findByGoogleId(googleId: string) {
     return prisma.user.findUnique({
       where: { googleId },
-      include: { company: true },
+      include: userInclude,
     });
   }
 
@@ -35,6 +40,7 @@ export class AuthRepository {
     emailVerified?: boolean;
     companyName?: string;
     companySlug?: string;
+    companyRoleId?: string | null;
   }) {
     const { companyName, companySlug, ...rest } = userData;
 
@@ -57,7 +63,7 @@ export class AuthRepository {
             email: rest.email.toLowerCase(),
             companyId: company.id,
           },
-          include: { company: true },
+          include: userInclude,
         });
       });
     }
@@ -68,7 +74,7 @@ export class AuthRepository {
         ...rest,
         email: rest.email.toLowerCase(),
       },
-      include: { company: true },
+      include: userInclude,
     });
   }
 
@@ -79,15 +85,18 @@ export class AuthRepository {
     });
   }
 
-  static async updateUser(id: string, data: { firstName?: string; lastName?: string; email?: string }) {
+  static async updateUser(id: string, data: { firstName?: string; lastName?: string; email?: string; phone?: string; companyRoleId?: string | null }) {
+    const updateData: Record<string, any> = {};
+    if (data.firstName !== undefined) updateData.firstName = data.firstName;
+    if (data.lastName !== undefined) updateData.lastName = data.lastName;
+    if (data.email !== undefined) updateData.email = data.email.toLowerCase();
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.companyRoleId !== undefined) updateData.companyRoleId = data.companyRoleId;
+
     return prisma.user.update({
       where: { id },
-      data: {
-        ...(data.firstName !== undefined && { firstName: data.firstName }),
-        ...(data.lastName !== undefined && { lastName: data.lastName }),
-        ...(data.email !== undefined && { email: data.email.toLowerCase() }),
-      },
-      include: { company: true },
+      data: updateData,
+      include: userInclude,
     });
   }
 
@@ -102,7 +111,7 @@ export class AuthRepository {
     return prisma.user.update({
       where: { id },
       data: { googleId, emailVerified: true },
-      include: { company: true },
+      include: userInclude,
     });
   }
 }

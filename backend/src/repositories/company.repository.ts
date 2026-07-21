@@ -25,7 +25,22 @@ export class CompanyRepository {
   static async findBySlug(slug: string) {
     return prisma.company.findUnique({
       where: { slug },
-      include: { services: { where: { isActive: true } }, _count: { select: { reviews: true } } },
+      include: {
+        services: { where: { isActive: true } },
+        employees: {
+          where: { isActive: true },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            workingHours: true,
+          },
+        },
+        reviews: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+          include: { booking: { select: { service: { select: { name: true } } } } },
+        },
+        _count: { select: { reviews: true } },
+      },
     });
   }
 
