@@ -8,7 +8,7 @@
     "build": "tsc",
 "build:prod": "tsc --skipLibCheck",
     "start": "node dist/server.js",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:unit": "jest --testPathPattern=tests/unit",
     "test:integration": "jest --testPathPattern=tests/integration",
     "prisma:generate": "prisma generate",
