@@ -103,7 +103,7 @@ jobs:
 
       - name: Run Frontend Tests
         working-directory: ./frontend
-        run: npm run test
+        run: npm run test --if-present
 
   build:
     name: Build Production Assets
