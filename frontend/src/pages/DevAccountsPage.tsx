@@ -57,8 +57,6 @@ export function DevAccountsPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [groupFilter, setGroupFilter] = useState('all');
 
-  if (!PASSWORD) return null;
-
   const uniqueGroups = useMemo(() => Array.from(new Set(accounts.map((a) => a.group))), []);
   const uniqueRoles = useMemo(() => Array.from(new Set(accounts.map((a) => a.role))), []);
 
@@ -80,6 +78,8 @@ export function DevAccountsPage() {
 
   const clearFilters = () => { setSearch(''); setRoleFilter('all'); setGroupFilter('all'); };
   const hasActiveFilters = search || roleFilter !== 'all' || groupFilter !== 'all';
+
+  if (!PASSWORD) return null;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white p-6">
