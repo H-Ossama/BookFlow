@@ -1,5 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <g transform="rotate(-45 16 16)">
-    <path d="M16 4 A12 12 0 0 1 28 16 A12 12 0 0 1 16 28 L8 28 A4 4 0 0 1 4 24 L4 16 A12 12 0 0 1 16 4 Z" fill="#86d6c8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" shape-rendering="geometricPrecision">
+  <g transform="translate(24,24) rotate(-45)">
+    <path d="M 0 -12 A 12 12 0 0 1 12 0 A 12 12 0 0 1 0 12 L -7 12 A 5 5 0 0 0 -12 7 L -12 0 A 12 12 0 0 0 0 -12 Z" fill="#70706e"/>
+  </g>
+  <g transform="translate(20,20) rotate(-45)">
+    <path d="M 0 -12 A 12 12 0 0 1 12 0 A 12 12 0 0 1 0 12 L -7 12 A 5 5 0 0 0 -12 7 L -12 0 A 12 12 0 0 0 0 -12 Z" fill="#ffffff"/>
   </g>
 </svg>

@@ -66,9 +66,5 @@ public/uploads/
 # Agent / IDE local config
 .agents/
 
-# Profile test images
-profiles-roles/
-public/profiles-roles/
-
 # TypeScript
 *.tsbuildinfo
